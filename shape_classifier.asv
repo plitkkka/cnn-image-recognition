@@ -1,0 +1,97 @@
+close all; close; clc;
+
+
+%% Загружем данные для обучения
+circleFolder = 'none';
+squareFolder = 'none';
+starFolder = 'none';
+triangleFolder = 'none';
+
+circleImages = imageDatastore(circleFolder, 'LabelSource', 'foldernames');
+squareImages = imageDatastore(squareFolder, 'LabelSource', 'foldernames');
+starImages = imageDatastore(starFolder, 'LabelSource', 'foldernames');
+triangleImages = imageDatastore(triangleFolder, 'LabelSource', 'foldernames');
+
+imds = imageDatastore(cat(1, circleImages.Files, ...
+    squareImages.Files, starImages.Files, ...
+    triangleImages.Files), 'LabelSource', 'foldernames');
+
+%% Выведем несколько примеров изображений
+figure
+numImages = 10000;
+perm = randperm(numImages,20);
+for i = 1:20
+    subplot(4,5,i);
+    imshow(imds.Files{perm(i)});
+    drawnow;
+end
+
+%% Разделяем данные на наборы для обучения
+[trainImages, testImages] = splitEachLabel(imds, 0.7, 'randomized');
+
+resizedTrainImages = augmentedImageDatastore([28 28 3], trainImages, 'ColorPreprocessing', 'gray2rgb');
+resizedTestImages = augmentedImageDatastore([28 28 3], testImages, 'ColorPreprocessing', 'gray2rgb');
+%% Параметры обучения
+%options = trainingOptions('rmsprop','InitialLearnRate',0.01, ...
+%    'MaxEpochs',8,'Shuffle','every-epoch','ValidationData', imdsValidation, ...
+%    'ValidationFrequency',10,'Verbose',false,'Plots','training-progress');
+
+options = trainingOptions('rmsprop','InitialLearnRate',0.01, ...
+   'MaxEpochs',30,'Shuffle','every-epoch', ...
+   'ValidationFrequency',10,'Verbose',false,'Plots','training-progress');
+
+%% Ахритектура нашей нейронки
+
+ layers = [
+     imageInputLayer([28 28 1],'AverageImage',ones([28 28 1]));
+     %imageInputLayer([28 28]);
+     %imageInputLayer([28 28 1]);
+ 
+     convolution2dLayer(3,25,'Padding','same')
+     batchNormalizationLayer
+     reluLayer
+ 
+     %maxPooling2dLayer(100,'Stride',100)
+     maxPooling2dLayer(20,'Stride',20) % 5 слой
+ 
+     convolution2dLayer(2,8,'Padding','same')
+     batchNormalizationLayer
+     reluLayer
+%     
+%     %maxPooling2dLayer(2,'Stride',2)
+%     maxPooling2dLayer(2,'Stride',2) % 9 слой
+% 
+%     convolution2dLayer(3,15,'Padding','same')
+%     batchNormalizationLayer
+%     reluLayer
+% 
+%     fullyConnectedLayer(2)
+%     softmaxLayer
+%     classificationLayer
+%     ];
+
+%layers = [
+ %   imageInputLayer([28 28 3],'AverageImage',ones([28 28 3]));
+
+  %  convolution2dLayer(10,30)
+   % batchNormalizationLayer
+    %reluLayer
+
+    %maxPooling2dLayer(15,'Stride',15)
+    
+
+    %fullyConnectedLayer(4)
+   % softmaxLayer
+    %classificationLayer
+    %];
+
+
+%% Ну, обучаем
+net = trainNetwork(resizedTrainImages, layers, options);
+
+
+
+
+
+
+
